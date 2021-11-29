@@ -99,6 +99,14 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
 
   /**
    *
+   * @param {Number} userID
+   */
+  setUserID = (userID) => {
+    this.userID = userID;
+  };
+
+  /**
+   *
    * @param {Number} roomID
    */
   setRoomID = (roomID) => {
@@ -339,6 +347,7 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
     try {
       let joinResponse = await this.sendAsync({
         request: "join",
+        id: this.userID,
         room: this.roomID,
         display: this.displayName,
         ptype: "publisher",
@@ -351,7 +360,7 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
       ) {
         let data = joinResponse.plugindata.data;
         if (data.videoroom === "joined") {
-          this.userID = data.id;
+          // this.userID = data.id;
           this.userPrivateID = data.private_id;
           this.publishers = data.publishers.map(
             (publisherData) => new JanusVideoRoomPublisher(publisherData)
