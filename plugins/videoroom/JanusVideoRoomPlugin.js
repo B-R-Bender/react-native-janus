@@ -182,8 +182,8 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
       case "webrtcup": {
         this.isWebRtcUp = true;
         if (
-          this.onWebRTCUpListener &&
-          typeof this.onWebRTCUpListener === "function"
+            this.onWebRTCUpListener &&
+            typeof this.onWebRTCUpListener === "function"
         ) {
           this.onWebRTCUpListener();
         }
@@ -194,14 +194,14 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
         if (message.type === "audio") {
           this.isReceivingAudio = message.receiving;
           console.log(
-            "plugin",
-            (message.receiving ? "" : "not ") + "receiving audio now..."
+              "plugin",
+              (message.receiving ? "" : "not ") + "receiving audio now..."
           );
         } else if (message.type === "video") {
           this.isReceivingVideo = message.receiving;
           console.log(
-            "plugin",
-            (message.receiving ? "" : "not ") + "receiving video now..."
+              "plugin",
+              (message.receiving ? "" : "not ") + "receiving video now..."
           );
         }
         return;
@@ -210,20 +210,20 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
       case "trickle": {
         if (this.isRemoteDescriptionSet) {
           await this.pc.addIceCandidate(
+              new Janus.RTCIceCandidate({
+                candidate: message.candidate.candidate,
+                sdpMid: message.candidate.sdpMid,
+                sdpMLineIndex: message.candidate.sdpMLineIndex,
+              })
+          );
+        }
+
+        this.cachedCandidates.push(
             new Janus.RTCIceCandidate({
               candidate: message.candidate.candidate,
               sdpMid: message.candidate.sdpMid,
               sdpMLineIndex: message.candidate.sdpMLineIndex,
             })
-          );
-        }
-
-        this.cachedCandidates.push(
-          new Janus.RTCIceCandidate({
-            candidate: message.candidate.candidate,
-            sdpMid: message.candidate.sdpMid,
-            sdpMLineIndex: message.candidate.sdpMLineIndex,
-          })
         );
 
         return;
@@ -257,23 +257,23 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
               //     this.onPublisherLeftListener(leavingPublisherID);
               // }
               return;
-            } else if (typeof data["leaving"] !== "undefined") {
-              let leavingPublisherID = data["leaving"];
+            } else if (typeof data["leaving"] !== "undefined" || typeof data["kicked"] !== "undefined") {
+              let leavingPublisherID = data["leaving"] || data["kicked"];
               if (
-                this.onPublisherLeftListener != null &&
-                typeof this.onPublisherLeftListener === "function"
+                  this.onPublisherLeftListener != null &&
+                  typeof this.onPublisherLeftListener === "function"
               ) {
                 this.onPublisherLeftListener(leavingPublisherID);
               }
               return;
             } else if (typeof data["publishers"] !== "undefined") {
               let newPublishers = data["publishers"].map(
-                (publisherData) => new JanusVideoRoomPublisher(publisherData)
+                  (publisherData) => new JanusVideoRoomPublisher(publisherData)
               );
               for (let i = 0; i < newPublishers.length; i++) {
                 if (
-                  this.onPublisherJoinedListener != null &&
-                  typeof this.onPublisherJoinedListener === "function"
+                    this.onPublisherJoinedListener != null &&
+                    typeof this.onPublisherJoinedListener === "function"
                 ) {
                   this.onPublisherJoinedListener(newPublishers[i]);
                 }
@@ -290,13 +290,13 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
   };
 
   forward = async ({
-    host,
-    audioPort,
-    audioPt,
-    videoPort,
-    videoPt,
-    secret,
-  }) => {
+                     host,
+                     audioPort,
+                     audioPt,
+                     videoPort,
+                     videoPt,
+                     secret,
+                   }) => {
     try {
       let additionalConfig = {};
 
@@ -317,10 +317,10 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
       });
 
       if (
-        rtpForwardResponse &&
-        rtpForwardResponse.plugindata &&
-        rtpForwardResponse.plugindata.data &&
-        rtpForwardResponse.plugindata.data.rtp_stream
+          rtpForwardResponse &&
+          rtpForwardResponse.plugindata &&
+          rtpForwardResponse.plugindata.data &&
+          rtpForwardResponse.plugindata.data.rtp_stream
       ) {
         return true;
       }
@@ -345,30 +345,31 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
    */
   join = async () => {
     try {
-      let joinResponse = await this.sendAsync({
+      const message = {
         request: "join",
-        id: this.userID,
         room: this.roomID,
         display: this.displayName,
         ptype: "publisher",
-      });
+      };
+      if (this.userID) message.id = this.userID;
+      let joinResponse = await this.sendAsync(message);
 
       if (
-        joinResponse.janus === "event" &&
-        joinResponse.plugindata &&
-        joinResponse.plugindata.data
+          joinResponse.janus === "event" &&
+          joinResponse.plugindata &&
+          joinResponse.plugindata.data
       ) {
         let data = joinResponse.plugindata.data;
         if (data.videoroom === "joined") {
           // this.userID = data.id;
           this.userPrivateID = data.private_id;
           this.publishers = data.publishers.map(
-            (publisherData) => new JanusVideoRoomPublisher(publisherData)
+              (publisherData) => new JanusVideoRoomPublisher(publisherData)
           );
 
           if (
-            this.onPublishersListener != null &&
-            typeof this.onPublishersListener === "function"
+              this.onPublishersListener != null &&
+              typeof this.onPublishersListener === "function"
           ) {
             this.onPublishersListener(this.publishers);
           }
@@ -407,28 +408,28 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
         offerToReceiveVideo: false,
       });
 
+      // offer.sdp = offer.sdp.replace(/a=extmap.* urn:3gpp:video-orientation\r\n/, "");
+
       await this.pc.setLocalDescription(offer);
 
-      // offer.sdp = offer.sdp.replace(/a=extmap:(\d+) urn:3gpp:video-orientation\n?/, '');
-
       let response = await this.sendAsyncWithJsep(
-        {
-          request: "configure",
-          audio: audio,
-          video: video,
-          bitrate: 128 * 1000,
-        },
-        {
-          type: offer.type,
-          sdp: offer.sdp,
-        }
+          {
+            request: "configure",
+            audio: audio,
+            video: video,
+            bitrate: 3 * 1024 * 1024,
+          },
+          {
+            type: offer.type,
+            sdp: offer.sdp,
+          }
       );
 
       await this.pc.setRemoteDescription(
-        new Janus.RTCSessionDescription({
-          sdp: response.jsep.sdp,
-          type: response.jsep.type,
-        })
+          new Janus.RTCSessionDescription({
+            sdp: response.jsep.sdp,
+            type: response.jsep.type,
+          })
       );
       this.isRemoteDescriptionSet = true;
 
@@ -437,7 +438,7 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
       }
       this.cachedCandidates = [];
     } catch (e) {
-      console.log(e);
+      console.log("BAD", e);
     }
   };
 
@@ -451,10 +452,10 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
       });
 
       if (
-        unpublishResponse &&
-        unpublishResponse.plugindata &&
-        unpublishResponse.plugindata.data &&
-        unpublishResponse.plugindata.data.unpublished === "ok"
+          unpublishResponse &&
+          unpublishResponse.plugindata &&
+          unpublishResponse.plugindata.data &&
+          unpublishResponse.plugindata.data.unpublished === "ok"
       ) {
         return;
       }
@@ -482,19 +483,19 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
       });
 
       if (
-        joinResponse &&
-        joinResponse.plugindata &&
-        joinResponse.plugindata.data &&
-        joinResponse.plugindata.data.videoroom === "attached"
+          joinResponse &&
+          joinResponse.plugindata &&
+          joinResponse.plugindata.data &&
+          joinResponse.plugindata.data.videoroom === "attached"
       ) {
         // OK
       }
 
       await this.pc.setRemoteDescription(
-        new Janus.RTCSessionDescription({
-          sdp: joinResponse.jsep.sdp,
-          type: joinResponse.jsep.type,
-        })
+          new Janus.RTCSessionDescription({
+            sdp: joinResponse.jsep.sdp,
+            type: joinResponse.jsep.type,
+          })
       );
       this.isRemoteDescriptionSet = true;
 
@@ -511,21 +512,21 @@ export default class JanusVideoRoomPlugin extends JanusPlugin {
       await this.pc.setLocalDescription(answer);
 
       const startResponse = await this.sendAsyncWithJsep(
-        {
-          request: "start",
-          room: this.roomID,
-        },
-        {
-          type: answer.type,
-          sdp: answer.sdp,
-        }
+          {
+            request: "start",
+            room: this.roomID,
+          },
+          {
+            type: answer.type,
+            sdp: answer.sdp,
+          }
       );
 
       if (
-        startResponse &&
-        startResponse.plugindata &&
-        startResponse.plugindata.data &&
-        startResponse.plugindata.data.started === "ok"
+          startResponse &&
+          startResponse.plugindata &&
+          startResponse.plugindata.data &&
+          startResponse.plugindata.data.started === "ok"
       ) {
         // OK
       }

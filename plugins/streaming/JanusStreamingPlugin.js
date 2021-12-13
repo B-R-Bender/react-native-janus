@@ -64,13 +64,13 @@ export default class JanusStreamingPlugin extends JanusPlugin {
             }
 
             case 'slowlink': {
-                console.log('plugin', 'slowlink', message);
+                console.log('Streaming', 'slowlink', message);
                 return;
             }
 
             case 'event': {
                 const data = message.plugindata.data;
-                console.log('plugin', 'event', data);
+                console.log('Streaming', 'event', data);
                 return;
             }
         }
@@ -99,7 +99,6 @@ export default class JanusStreamingPlugin extends JanusPlugin {
                 ...additionalConfig,
             });
 
-
             if (watchStreamingResponse.jsep) {
                 await this.pc.setRemoteDescription(new Janus.RTCSessionDescription({
                     sdp: watchStreamingResponse.jsep.sdp,
@@ -107,14 +106,10 @@ export default class JanusStreamingPlugin extends JanusPlugin {
                 }));
                 this.isRemoteDescriptionSet = true;
 
-                console.error('watch', 'set remote desc');
-
                 for (const candidate of this.cachedCandidates) {
                     await this.pc.addIceCandidate(candidate);
                 }
                 this.cachedCandidates = [];
-
-                console.error('watch', 'added candidates');
 
                 let answer = await this.pc.createAnswer({
                     'offerToReceiveAudio': true,
